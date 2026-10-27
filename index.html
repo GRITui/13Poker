@@ -18,6 +18,10 @@
   </div>
   <div class="top-actions">
     <span class="round-pill" title="Round">Round <b id="roundNo">1</b></span>
+    <button class="icon-btn" id="btnOnline" type="button" aria-label="Play online" title="Checking whether online play is available…" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-3.3 0-7 1.6-7 4v3h14v-3c0-2.4-3.7-4-7-4zm7.5-2.2a3.3 3.3 0 1 0-1.4-6.3 5.9 5.9 0 0 1 0 5.9c.4.3.9.4 1.4.4zm1.8 2.6c1.7.8 2.7 2 2.7 3.6v3h2v-3c0-1.9-2.3-3.2-4.7-3.6z"/></svg>
+      <span class="btn-label">Online</span>
+    </button>
     <button class="icon-btn" id="btnScores" type="button" aria-label="Scoreboard" title="Scoreboard">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
       <span class="btn-label">Scores</span>
@@ -34,6 +38,8 @@
 </header>
 
 <main class="felt" id="felt">
+  <section class="lobby" id="lobby" hidden aria-label="Online play"></section>
+  <div class="online-bar" id="onlineBar" hidden role="status"></div>
   <section class="opponents" id="opponents" aria-label="Opponents"></section>
 
   <section class="player" id="player" aria-label="Your hand">
@@ -99,7 +105,7 @@
           <label><input type="radio" name="opponents" value="2"><span>2</span></label>
           <label><input type="radio" name="opponents" value="3"><span>3</span></label>
         </div>
-        <p class="hint">Changing the table size starts a new game and resets the scoreboard.</p>
+        <p class="hint">Changing the table size starts a new game and resets the scoreboard. At an online table, the host's rules apply instead.</p>
       </fieldset>
 
       <fieldset>
@@ -161,16 +167,20 @@
         <tbody>
           <tr><td>WSGC</td><td>+1</td><td>+3</td></tr>
           <tr><td>Scoop &times;2 (default)</td><td>+1</td><td>+6</td></tr>
+          <tr><td>&nbsp;&nbsp;scoop everyone (3+ players)</td><td></td><td>+12 each</td></tr>
           <tr><td>2-4</td><td>+2</td><td>+4</td></tr>
         </tbody>
       </table>
       <p><b>Scoop &times;2:</b> win all three rows (Front, Middle and Back) against one player and your row points double, 3 &times; 2 = 6. A tied row means no scoop.</p>
+      <p><b>Scoop everyone &times;4:</b> with 3 or more players, if you scoop every opponent, each of them pays 3 &times; 4 = 12 instead of 6. A fouled opponent counts as scooped; naturals don't. Royalties are added on top, not multiplied.</p>
       <p>A fouled hand loses all three rows to every valid hand, so it is scooped and pays 6. Two fouled hands score 0 against each other.</p>
       <h3>Optional rules</h3>
       <p><b>Royalties</b> (off by default): Front trips 3; Middle full house 2, quads 8, straight flush 10; Back quads 4, straight flush 5.</p>
       <p><b>Naturals</b> (off by default): Dragon (A to K, one of each rank) 13, Six pairs 3, Three flushes 3, Three straights 3. A declared natural is paid instead of comparing hands.</p>
       <h3>Controls</h3>
       <p>By default your 13 cards are dealt <b>straight into the rows at random</b>, usually as a fouled hand. Swap cards between rows until the Back beats the Middle and the Middle beats the Front. <b>Tap</b> a card, then tap a card in another row to swap them, or drag one card onto another.</p>
+      <h3>Online</h3>
+      <p>Tap <b>Online</b> to play with friends on claude.ai: create a table and share its 4-character code, or join with a friend's code. The host picks the scoring, can fill empty seats with AI bots, and deals each round. Everyone's hand is dealt from a shared seed, so online play is for friendly games only and isn't cheat-proof.</p>
       <p class="fine">The rules follow the Washington State Gambling Commission "Thirteen Card Poker (Chinese Poker)" sheet as reported by search snippets, plus common conventions where the sheet is silent. See <a href="docs/RULES.md">RULES.md</a>.</p>
     </div>
   </form>

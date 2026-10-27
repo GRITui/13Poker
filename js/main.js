@@ -6,6 +6,7 @@ import {
 } from './engine/index.js';
 import { attachDnD } from './ui/dnd.js';
 import { loadSettings, saveSettings, loadScores, saveScores, totals } from './ui/store.js';
+import { initOnline } from './online/online.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const el = (tag, cls, html) => {
@@ -14,6 +15,7 @@ const el = (tag, cls, html) => {
   if (html != null) e.innerHTML = html;
   return e;
 };
+const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const ROW_LABEL = { front: 'Front', middle: 'Middle', back: 'Back' };
 const OPPONENTS = [
@@ -31,23 +33,32 @@ let settings = loadSettings();
 let scores = null;
 let game = null;
 let showdownToken = 0;
+// Online play: null in single player. While seated at a table with a game running, the online controller sets
+// it to { rules, isHost, book(), submit(set, declared), next() } (see js/online/online.js).
+let online = null;
 
 function playerNames() {
+  if (online) return ['You', ...game.opps.map((o) => o.name)];
   return ['You', ...OPPONENTS.slice(0, settings.opponents).map((o) => o.name)];
 }
+/** The rules in force: the table's settings online, the local settings otherwise. */
+function rules() { return online ? online.rules : settings; }
+/** Scoreboard {names, rounds}, from this player's point of view. */
+function scoreBook() { return online ? online.book() : scores; }
 
 function engineConfig() {
+  const s = rules();
   return makeConfig({
-    mode: settings.mode,
-    unitValue: settings.unitValue,
-    allowEqualRows: settings.allowEqualRows,
-    royalties: settings.royalties ? DEFAULT_ROYALTIES : null,
-    royaltyRequiresRowWin: settings.royaltyRequiresRowWin,
-    naturals: settings.naturals ? DEFAULT_NATURALS : null,
-    wheelRank: settings.wheelSecond ? 'second' : 'lowest',
+    mode: s.mode,
+    unitValue: s.unitValue,
+    allowEqualRows: s.allowEqualRows,
+    royalties: s.royalties ? DEFAULT_ROYALTIES : null,
+    royaltyRequiresRowWin: s.royaltyRequiresRowWin,
+    naturals: s.naturals ? DEFAULT_NATURALS : null,
+    wheelRank: s.wheelSecond ? 'second' : 'lowest',
   });
 }
-const ruleOpts = () => ({ allowEqualRows: settings.allowEqualRows, wheelRank: settings.wheelSecond ? 'second' : 'lowest' });
+const ruleOpts = () => ({ allowEqualRows: rules().allowEqualRows, wheelRank: rules().wheelSecond ? 'second' : 'lowest' });
 
 // ---------- card elements ----------
 const cardCache = new Map();
@@ -99,6 +110,7 @@ function newGame() {
 }
 
 function newRound(round) {
+  online = null;
   showdownToken++;
   const n = settings.opponents + 1;
   const rng = SEED != null ? seededRng(SEED * 1000 + round) : Math.random;
@@ -111,7 +123,7 @@ function newRound(round) {
     rows: { front: [], middle: [], back: [] },
     selected: new Set(),
     sortMode: 'rank',
-    ai: hands.slice(1).map(() => ({ set: null, ready: false, natural: null })),
+    opps: hands.slice(1).map((_, i) => ({ ...OPPONENTS[i], kind: 'bot', set: null, ready: false })),
     humanNatural: null,
     declareNatural: false,
     settlement: null,
@@ -139,7 +151,7 @@ function newRound(round) {
 
 function scheduleAI() {
   const g = game;
-  g.ai.forEach((a, i) => {
+  g.opps.forEach((a, i) => {
     setTimeout(() => {
       if (g !== game || a.ready) return;
       computeAI(i);
@@ -150,7 +162,7 @@ function scheduleAI() {
 }
 
 function computeAI(i) {
-  const a = game.ai[i];
+  const a = game.opps[i];
   if (a.ready) return;
   const cards = game.hands[i + 1];
   const rng = SEED != null ? seededRng(SEED * 7919 + game.round * 31 + i) : Math.random;
@@ -265,7 +277,7 @@ function analyze() {
 
 // ---------- rendering ----------
 function renderAll() {
-  document.documentElement.style.setProperty('--opp-count', settings.opponents);
+  document.documentElement.style.setProperty('--opp-count', game.opps.length);
   $('#roundNo').textContent = game.round;
   renderOpponents();
   renderPlayer();
@@ -277,27 +289,31 @@ function fmtPts(n, unit = true) {
 }
 function ptsClass(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : 'zero'; }
 function money(n) {
-  const v = n * settings.unitValue;
+  const v = n * rules().unitValue;
   return `${v < 0 ? '−' : v > 0 ? '+' : ''}$${Math.abs(v)}`;
 }
 
 function renderOpponents() {
   const wrap = $('#opponents');
-  const tot = totals(scores);
+  const tot = totals(scoreBook());
   const showdown = game.phase !== 'arrange';
   wrap.classList.toggle('showdown', showdown);
   wrap.innerHTML = '';
-  game.ai.forEach((a, i) => {
-    const o = OPPONENTS[i];
+  game.opps.forEach((a, i) => {
     const seat = el('div', 'seat');
     seat.dataset.seat = i + 1;
-    seat.style.setProperty('--seat-color', o.color);
+    seat.style.setProperty('--seat-color', a.color);
     const top = el('div', 'seat-top');
+    // Online names are other people's input: set them as text, never as HTML.
     top.innerHTML = `
-      <div class="seat-id"><span class="avatar" aria-hidden="true">${o.name[0]}</span>
-        <div><div class="seat-name">${o.name}</div><div class="seat-score">${fmtPts(tot[i + 1])}</div></div></div>`;
-    const state = el('div', `seat-state ${a.ready ? 'ready' : 'thinking'}`);
-    if (!showdown) state.innerHTML = `<span class="dot"></span>${a.ready ? 'Ready' : 'Setting hand…'}`;
+      <div class="seat-id"><span class="avatar" aria-hidden="true"></span>
+        <div><div class="seat-name"></div><div class="seat-score">${fmtPts(tot[i + 1])}</div></div></div>`;
+    $('.avatar', top).textContent = (a.name || '?')[0].toUpperCase();
+    $('.seat-name', top).textContent = a.name;
+    const away = a.kind === 'human' && a.here === false;
+    const state = el('div', `seat-state ${away ? 'away' : a.ready ? 'ready' : 'thinking'}`);
+    const label = away ? 'Left the table' : a.ready ? (online ? 'Hand set' : 'Ready') : online && a.kind === 'human' ? 'Arranging…' : 'Setting hand…';
+    if (!showdown) state.innerHTML = `<span class="dot"></span>${label}`;
     top.appendChild(state);
     seat.appendChild(top);
 
@@ -339,7 +355,7 @@ function renderOpponents() {
 function renderPlayer() {
   const a = game.phase === 'arrange' ? analyze() : null;
   const arranging = game.phase === 'arrange';
-  const tot = totals(scores);
+  const tot = totals(scoreBook());
   $('#youScore').textContent = `${fmtPts(tot[0])} (${money(tot[0])})`;
 
   // rows
@@ -407,8 +423,14 @@ function renderPlayer() {
       v.className = 'validation info';
       v.textContent = `${a.placed} / 13 placed`;
     }
-    const waiting = game.ai.filter((x) => !x.ready).length;
-    status.textContent = waiting ? `Round ${game.round} · opponents are setting their hands…` : `Round ${game.round} · set your hand`;
+    const waiting = game.opps.filter((x) => !x.ready).length;
+    status.textContent = waiting && !online ? `Round ${game.round} · opponents are setting their hands…` : `Round ${game.round} · set your hand`;
+  } else if (game.phase === 'waiting' || game.phase === 'sending') {
+    v.className = 'validation info';
+    v.textContent = '';
+    const who = game.opps.filter((x) => !x.ready).map((x) => x.name);
+    status.textContent = game.phase === 'sending' ? `Round ${game.round} · setting your hand…`
+      : who.length ? `Round ${game.round} · hand set. Waiting for ${listNames(who)}…` : `Round ${game.round} · hand set`;
   } else {
     v.className = 'validation info';
     v.textContent = '';
@@ -433,6 +455,10 @@ function renderPlayer() {
   $('#controls').hidden = !arranging;
   updateSubmit(a);
   layoutTray();
+}
+
+function listNames(names) {
+  return names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
 
 function updateSubmit(a = game.phase === 'arrange' ? analyze() : null) {
@@ -477,7 +503,8 @@ async function submit() {
     toast(a.complete ? 'That hand is fouled. Fix the row order first.' : 'Place all 13 cards first.');
     return;
   }
-  game.ai.forEach((_, i) => computeAI(i)); // make sure every AI hand is set
+  if (online) { await submitOnline(a, declared); return; }
+  game.opps.forEach((_, i) => computeAI(i)); // make sure every AI hand is set
   if (declared && !a.complete) {
     const set = game.humanNatural.set || arrangeHand(game.hands[0], ruleOpts()).set;
     game.rows = { front: set.front.slice(), middle: set.middle.slice(), back: set.back.slice() };
@@ -486,20 +513,37 @@ async function submit() {
   const cfg = engineConfig();
   if (cfg.naturals) {
     // AI always declares a natural; show the natural's own arrangement when it has one.
-    game.ai.forEach((ai, i) => {
+    game.opps.forEach((ai, i) => {
       const nat = detectNatural(game.hands[i + 1], cfg.naturals, ruleOpts());
       if (nat?.set) ai.set = nat.set;
     });
   }
   const humanSet = { front: game.rows.front.slice(), middle: game.rows.middle.slice(), back: game.rows.back.slice() };
   const players = [preparePlayer(humanSet, cfg, { dealt: game.hands[0], declareNatural: !!declared })];
-  game.ai.forEach((ai, i) => players.push(preparePlayer(ai.set, cfg, { dealt: game.hands[i + 1] })));
+  game.opps.forEach((ai, i) => players.push(preparePlayer(ai.set, cfg, { dealt: game.hands[i + 1] })));
   game.players = players;
   game.settlement = settle(players, cfg);
   game.phase = 'showdown';
   game.selected.clear();
   renderAll();
   await runShowdown(++showdownToken);
+}
+
+async function submitOnline(a, declared) {
+  const g = game;
+  if (declared && !a.complete) {
+    const set = g.humanNatural.set || arrangeHand(g.hands[0], ruleOpts()).set;
+    g.rows = { front: set.front.slice(), middle: set.middle.slice(), back: set.back.slice() };
+    g.tray = [];
+  }
+  const set = { front: g.rows.front.slice(), middle: g.rows.middle.slice(), back: g.rows.back.slice() };
+  g.phase = 'sending';
+  g.selected.clear();
+  renderPlayer();
+  const ok = await online.submit(set, !!declared);
+  if (g !== game) return;
+  if (!ok) { g.phase = 'arrange'; renderPlayer(); return; }
+  if (g.phase === 'sending') { g.phase = 'waiting'; renderAll(); }
 }
 
 async function runShowdown(token) {
@@ -541,14 +585,23 @@ async function runShowdown(token) {
   finishShowdown();
 }
 
+/** One-line summary of a pair result from your side. Returns HTML; oppName is escaped here. */
 function describePair(d, oppName) {
-  if (d.kind === 'natural') return d.points > 0 ? 'Your natural wins' : d.points < 0 ? `${oppName}'s natural wins` : 'Naturals tie';
+  const opp = esc(oppName);
+  if (d.kind === 'natural') return d.points > 0 ? 'Your natural wins' : d.points < 0 ? `${opp}'s natural wins` : 'Naturals tie';
   if (d.kind === 'bothFouled') return 'Both fouled';
-  if (d.kind === 'foul') return d.points > 0 ? `${oppName} fouled` : 'You fouled';
-  const ties = 3 - d.won - d.lost;
-  let s = `Rows ${d.won}-${d.lost}${ties ? `-${ties}` : ''}`;
-  if (d.scoop === 'A') s += ', scoop!';
-  if (d.scoop === 'B') s += ', scooped';
+  let s;
+  if (d.kind === 'foul') {
+    s = d.points > 0 ? `${opp} fouled` : 'You fouled';
+  } else {
+    const ties = 3 - d.won - d.lost;
+    s = `Rows ${d.won}-${d.lost}${ties ? `-${ties}` : ''}`;
+    if (d.scoop === 'A' && !d.scoopAll) s += ', scoop!';
+    if (d.scoop === 'B' && !d.scoopAll) s += ', scooped';
+  }
+  // House rule: scooping every opponent pays x4 (12) instead of x2.
+  if (d.scoopAll === 'A') s += ', <b>you scooped everyone ×4!</b>';
+  if (d.scoopAll === 'B') s += `, ${opp} scooped everyone ×4`;
   if (d.royalties.a || d.royalties.b) s += `, royalties ${d.royalties.a}-${d.royalties.b}`;
   return s;
 }
@@ -566,9 +619,11 @@ function finishShowdown() {
     res.classList.add('show');
   });
 
-  // Scoreboard
-  scores.rounds.push({ round: game.round, net: st.net.slice() });
-  saveScores(scores);
+  // Scoreboard (online, the host records the round in the shared table document instead)
+  if (!online) {
+    scores.rounds.push({ round: game.round, net: st.net.slice() });
+    saveScores(scores);
+  }
   game.phase = 'results';
   renderPlayer();
   renderOpponentsScores();
@@ -576,17 +631,17 @@ function finishShowdown() {
 }
 
 function renderOpponentsScores() {
-  const tot = totals(scores);
+  const tot = totals(scoreBook());
   document.querySelectorAll('.seat').forEach((seat, i) => {
     const s = seat.querySelector('.seat-score');
     if (s) s.textContent = fmtPts(tot[i + 1]);
   });
 }
 
-function renderResults() {
+function renderResults(scroll = true) {
   const st = game.settlement;
   const names = playerNames();
-  const tot = totals(scores);
+  const tot = totals(scoreBook());
   const n = names.length;
   const you = st.net[0];
   const box = $('#results');
@@ -594,14 +649,14 @@ function renderResults() {
   const headline = you > 0 ? `You won ${units(you)} this round` : you < 0 ? `You lost ${units(-you)} this round` : 'You broke even this round';
   let roundRows = '';
   for (let i = 0; i < n; i++) {
-    roundRows += `<tr class="${i === 0 ? 'you' : ''}"><td>${names[i]}</td>
+    roundRows += `<tr class="${i === 0 ? 'you' : ''}"><td>${esc(names[i])}</td>
       <td class="${ptsClass(st.net[i])}">${fmtPts(st.net[i], false)}</td>
       <td class="${ptsClass(tot[i])}">${fmtPts(tot[i], false)}</td>
       <td class="${ptsClass(tot[i])}">${money(tot[i])}</td></tr>`;
   }
-  let matrix = '<thead><tr><th></th>' + names.map((x) => `<th>${x}</th>`).join('') + '</tr></thead><tbody>';
+  let matrix = '<thead><tr><th></th>' + names.map((x) => `<th>${esc(x)}</th>`).join('') + '</tr></thead><tbody>';
   for (let i = 0; i < n; i++) {
-    matrix += `<tr class="${i === 0 ? 'you' : ''}"><td>${names[i]}</td>`;
+    matrix += `<tr class="${i === 0 ? 'you' : ''}"><td>${esc(names[i])}</td>`;
     for (let j = 0; j < n; j++) {
       if (i === j) { matrix += '<td class="diag">–</td>'; continue; }
       const p = pairFor(st, i, j).points;
@@ -611,11 +666,15 @@ function renderResults() {
   }
   matrix += '</tbody>';
   const sum = st.net.reduce((s, x) => s + x, 0);
-  const modeLabel = { wsgc: 'WSGC scoring', '1-6': 'Scoop ×2 scoring', '2-4': '2-4 scoring' }[settings.mode];
-  const extras = [settings.royalties && 'royalties', settings.naturals && 'naturals'].filter(Boolean).join(', ');
+  const ru = rules();
+  const modeLabel = { wsgc: 'WSGC scoring', '1-6': 'Scoop ×2 scoring', '2-4': '2-4 scoring' }[ru.mode];
+  const extras = [ru.royalties && 'royalties', ru.naturals && 'naturals'].filter(Boolean).join(', ');
+  const nextBtn = !online || online.isHost
+    ? '<button type="button" class="btn btn-primary" id="btnNext">Next round</button>'
+    : '<button type="button" class="btn btn-primary" id="btnNext" disabled>Waiting for the host…</button>';
   box.innerHTML = `
     <h2 class="${ptsClass(you)}">${headline}</h2>
-    <p class="sub">Round ${game.round} · ${modeLabel}${extras ? ` + ${extras}` : ''} · 1 unit = $${settings.unitValue}</p>
+    <p class="sub">Round ${game.round} · ${modeLabel}${extras ? ` + ${extras}` : ''} · 1 unit = $${ru.unitValue}</p>
     <div class="results-grid">
       <div>
         <h3>Scores</h3>
@@ -629,14 +688,19 @@ function renderResults() {
     </div>
     <div class="results-actions">
       <button type="button" class="btn btn-ghost" id="btnResultsScores">Scoreboard</button>
-      <button type="button" class="btn btn-primary" id="btnNext">Next round</button>
+      ${nextBtn}
     </div>`;
   box.hidden = false;
-  $('#btnNext').addEventListener('click', () => newRound(game.round + 1));
+  $('#btnNext').addEventListener('click', () => {
+    if (!online) { newRound(game.round + 1); return; }
+    $('#btnNext').disabled = true;
+    online.next();
+  });
   $('#btnResultsScores').addEventListener('click', openScores);
+  if (!scroll) return;
   const anim = settings.animations && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   box.scrollIntoView({ behavior: anim ? 'smooth' : 'auto', block: 'nearest' });
-  $('#btnNext').focus({ preventScroll: true });
+  if (!$('#btnNext').disabled) $('#btnNext').focus({ preventScroll: true });
 }
 
 // ---------- dialogs ----------
@@ -669,6 +733,11 @@ function applySettings() {
   if (prev.cardBack !== settings.cardBack) {
     document.querySelectorAll('img.back-img').forEach((img) => { img.src = backSrc(); });
   }
+  if (online) {
+    // The table's rules come from the host; local rule changes apply to single player later.
+    toast('Settings saved. At an online table the host\'s rules apply.');
+    return;
+  }
   if (prev.opponents !== settings.opponents) {
     scores = { names: playerNames(), rounds: [] };
     saveScores(scores);
@@ -678,7 +747,7 @@ function applySettings() {
   }
   if (game.phase === 'arrange') {
     const rulesChanged = prev.allowEqualRows !== settings.allowEqualRows || prev.wheelSecond !== settings.wheelSecond;
-    if (rulesChanged) { game.ai.forEach((a) => { a.ready = false; }); scheduleAI(); renderOpponents(); }
+    if (rulesChanged) { game.opps.forEach((a) => { a.ready = false; }); scheduleAI(); renderOpponents(); }
     if (prev.naturals !== settings.naturals) {
       game.humanNatural = settings.naturals ? detectNatural(game.hands[0], DEFAULT_NATURALS, ruleOpts()) : null;
       game.declareNatural = false;
@@ -689,18 +758,20 @@ function applySettings() {
 }
 
 function openScores() {
-  const names = scores.names;
-  const tot = totals(scores);
+  const book = scoreBook();
+  const names = book.names;
+  const tot = totals(book);
   const body = $('#scoresBody');
-  if (!scores.rounds.length) {
+  $('#btnResetScores').hidden = !!online;
+  if (!book.rounds.length) {
     body.innerHTML = '<p class="empty-note">No rounds played yet.</p>';
   } else {
-    const head = `<tr><th>Round</th>${names.map((x) => `<th>${x}</th>`).join('')}</tr>`;
-    const rows = scores.rounds.slice().reverse().map((r) => `<tr><td>${r.round}</td>${r.net.map((x) => `<td class="${ptsClass(x)}">${fmtPts(x, false)}</td>`).join('')}</tr>`).join('');
+    const head = `<tr><th>Round</th>${names.map((x) => `<th>${esc(x)}</th>`).join('')}</tr>`;
+    const rows = book.rounds.slice().reverse().map((r) => `<tr><td>${r.round}</td>${r.net.map((x) => `<td class="${ptsClass(x)}">${fmtPts(x, false)}</td>`).join('')}</tr>`).join('');
     const totalRow = `<tr class="you"><td><b>Total</b></td>${tot.map((x) => `<td class="${ptsClass(x)}"><b>${fmtPts(x, false)}</b></td>`).join('')}</tr>`;
-    const moneyRow = `<tr><td>At $${settings.unitValue}/unit</td>${tot.map((x) => `<td class="${ptsClass(x)}">${money(x)}</td>`).join('')}</tr>`;
+    const moneyRow = `<tr><td>At $${rules().unitValue}/unit</td>${tot.map((x) => `<td class="${ptsClass(x)}">${money(x)}</td>`).join('')}</tr>`;
     body.innerHTML = `<div class="tbl-scroll"><table class="tbl"><thead>${head}</thead><tbody>${totalRow}${moneyRow}${rows}</tbody></table></div>
-      <p class="hint">${scores.rounds.length} round${scores.rounds.length > 1 ? 's' : ''} played. Every round sums to zero.</p>`;
+      <p class="hint">${book.rounds.length} round${book.rounds.length > 1 ? 's' : ''} played${online ? ' at this table' : ''}. Every round sums to zero.</p>`;
   }
   $('#dlgScores').showModal();
 }
@@ -736,7 +807,7 @@ function wire() {
   $('#settingsForm').royalties.addEventListener('change', (e) => { $('#settingsForm').royaltyRequiresRowWin.disabled = !e.target.checked; });
   $('#dlgSettings').addEventListener('close', () => { if ($('#dlgSettings').returnValue === 'save') applySettings(); });
   $('#dlgScores').addEventListener('close', () => {
-    if ($('#dlgScores').returnValue === 'reset' && confirm('Reset the scoreboard?')) {
+    if (!online && $('#dlgScores').returnValue === 'reset' && confirm('Reset the scoreboard?')) {
       scores = { names: playerNames(), rounds: [] };
       saveScores(scores);
       renderOpponentsScores();
@@ -770,14 +841,109 @@ function wire() {
   window.addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(layoutTray); });
 }
 
+// ---------- online hooks (called by js/online/online.js) ----------
+const onlineApi = {
+  /** Start an online round. view: { key, round, hands (this player's first), opps: [{name, color, kind, here, ready}] }. */
+  enterRound(view, ctx) {
+    online = ctx;
+    showdownToken++;
+    const h = view.hands[0];
+    game = {
+      round: view.round,
+      phase: 'arrange',
+      hands: view.hands,
+      tray: [],
+      rows: { front: [], middle: [], back: [] },
+      selected: new Set(),
+      sortMode: 'rank',
+      opps: view.opps.map((o) => ({ ...o, set: null })),
+      humanNatural: null,
+      declareNatural: false,
+      settlement: null,
+      players: null,
+      justDealt: true,
+      onlineKey: view.key,
+    };
+    if (settings.randomDeal) {
+      game.rows = { front: h.slice(0, 3), middle: h.slice(3, 8), back: h.slice(8) };
+      normalize();
+    } else {
+      game.tray = sortTray(h);
+    }
+    game.humanNatural = rules().naturals ? detectNatural(h, DEFAULT_NATURALS, ruleOpts()) : null;
+    $('#results').hidden = true;
+    $('#results').innerHTML = '';
+    renderAll();
+    game.justDealt = false;
+  },
+  key: () => (online && game ? game.onlineKey : null),
+  phase: () => game?.phase,
+  /** Update the other seats' names and readiness. */
+  setOpps(opps) {
+    if (!online) return;
+    let renamed = false;
+    game.opps.forEach((o, i) => {
+      const n = opps[i];
+      if (!n) return;
+      if (o.name !== n.name) renamed = true;
+      Object.assign(o, { name: n.name, color: n.color, kind: n.kind, here: n.here, ready: n.ready });
+    });
+    if (['arrange', 'sending', 'waiting'].includes(game.phase)) {
+      renderOpponents();
+      renderPlayer();
+    } else if (renamed) {
+      document.querySelectorAll('.seat').forEach((seat, i) => { $('.seat-name', seat).textContent = game.opps[i].name; });
+      if (game.phase === 'results') renderResults(false);
+    }
+  },
+  /** This player's hand is already set for the round (after a refresh, or once the write lands). */
+  restoreSubmitted(set, declared) {
+    if (!online || !['arrange', 'sending'].includes(game.phase)) return;
+    game.rows = { front: set.front.slice(), middle: set.middle.slice(), back: set.back.slice() };
+    game.tray = [];
+    game.declareNatural = !!declared;
+    game.phase = 'waiting';
+    game.selected.clear();
+    normalize();
+    renderAll();
+  },
+  /** Everyone is set: reveal. res: { sets, players, settlement } in display order (this player first). */
+  showdown(res, instant) {
+    if (!online || !['sending', 'waiting'].includes(game.phase)) return;
+    game.opps.forEach((o, i) => { o.set = res.sets[i + 1]; o.ready = true; });
+    game.players = res.players;
+    game.settlement = res.settlement;
+    game.phase = 'showdown';
+    game.selected.clear();
+    renderAll();
+    if (instant) { showdownToken++; finishShowdown(); } else runShowdown(++showdownToken);
+  },
+  /** The shared results changed (the host recorded a round). */
+  refreshScores() {
+    if (!online) return;
+    renderOpponentsScores();
+    renderPlayer();
+    if (game.phase === 'results') renderResults(false);
+  },
+  /** Back to single player. */
+  leave() {
+    online = null;
+    showdownToken++;
+    newGame();
+  },
+  toast,
+};
+
 wire();
 newGame();
+const onlineDebug = initOnline(onlineApi);
 
 // Small hook for automated browser tests (read-only snapshot + helpers).
 window.__poker = {
   state: () => ({
     round: game.round, phase: game.phase, tray: game.tray.slice(), rows: JSON.parse(JSON.stringify(game.rows)),
-    aiMs: game.ai.map((a) => a.ms ?? null), net: game.settlement?.net ?? null, totals: totals(scores),
+    aiMs: game.opps.map((a) => a.ms ?? null), net: game.settlement?.net ?? null, totals: totals(scoreBook()),
   }),
   skip: () => { if (game.phase === 'showdown') { showdownToken++; finishShowdown(); } },
+  online: () => onlineDebug(),
 };

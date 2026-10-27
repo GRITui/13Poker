@@ -21,10 +21,10 @@ Add `?seed=123` to the URL for repeatable deals, which helps with debugging and 
 
 ## Features
 
-- 1 human vs 1–3 AI opponents (default 3, so all 52 cards are dealt).
-- Arrange cards by **tap/click** (select cards, then tap a row; with one card selected, tap a card elsewhere to swap)
-  or by **drag-and-drop**. Dragging uses Pointer Events, so it works with touch, mouse and pen. Tools: sort by rank or
-  by suit, **Auto** (suggested arrangement) and **Clear**.
+- 1 human vs 1–3 AI opponents (default 3, so all 52 cards are dealt), or **online with friends** (see below).
+- Cards are dealt straight into Front / Middle / Back at random (setting `randomDeal`, on by default). Swap cards by
+  **tap/click** (tap a card, then a card in another row) or by **drag-and-drop**, then press **Set hand**. Dragging
+  uses Pointer Events, so it works with touch, mouse and pen.
 - Live validation: each row shows its hand name, and the game warns as soon as the order is broken (Back must beat
   Middle, Middle must beat Front). A fouled hand can't be submitted.
 - AI opponents: an exhaustive search over all 72,072 Back/Middle/Front splits, scored by a heuristic estimate of each
@@ -37,6 +37,30 @@ Add `?seed=123` to the URL for repeatable deals, which helps with debugging and 
   A-2-3-4-5 as the second-highest straight, and animations on or off. Settings and scores are saved in `localStorage`.
 - A "How to play" panel. The layout works from desktop down to 375 px phones without horizontal scrolling.
 
+## Online play (claude.ai)
+
+When the game is opened as a claude.ai Artifact, the **Online** button lets 2–4 people play together: one person
+creates a table and shares its 4-character code (no I, L, O, 0 or 1); the others choose **Join** and enter it. The
+host picks the scoring mode, can fill empty seats with AI bots, starts the game and deals each next round. Everyone
+sees who has set their hand, the same showdown and the same running totals. A refresh rejoins the table and restores a
+hand you already set. If someone leaves mid-game, the host can give their seat to a bot.
+
+It uses the Artifact runtime's `db` capability (shared documents with live snapshots) and `user` (viewer id and
+profile names, resolved at render time; only ids are stored):
+
+- `tables/{hostId}`: the table, written only by its host (`{code, host, phase: lobby|arrange|showdown, round, seed,
+  seats: [{id, kind: human|bot}], settings, results: [{round, net[]}]}`).
+- `players/{uid}`: one per person, written only by that person: which table they are at, and their set hand for the
+  current round.
+
+Every client deals the same cards from the table's seed and arranges the bots' hands the same way, so nobody writes
+bot hands, and the host only records each round's result. Everything read from the shared store is validated
+(`js/online/table.js`). **This is for friendly games:** all hands can be derived from the shared seed, so a
+determined player could peek. It is not cheat-proof; don't play for money.
+
+Outside claude.ai (a plain static server, GitHub Pages, signed out) `window.claude` is missing or `use("db")`
+resolves `null`; the Online button then only explains why, and single player works as before.
+
 ## Project layout
 
 ```
@@ -45,6 +69,8 @@ css/style.css           felt-table theme, responsive layout
 js/main.js              UI controller: state, rendering, showdown animation
 js/ui/dnd.js            pointer-based drag-and-drop + tap handling
 js/ui/store.js          settings/scoreboard persistence
+js/online/table.js      online table state: validation, seat folding, deterministic deals, round results (pure)
+js/online/online.js     online controller: claude.ai db/user runtime, lobby UI, subscriptions
 js/engine/              pure game logic (no DOM)
   cards.js              cards, deck, seeded RNG, shuffle/deal, sorting
   evaluate.js           5-card and 3-card evaluation, comparison (incl. Front vs Middle), hand names
