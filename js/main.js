@@ -90,6 +90,8 @@ function flipEl(c) {
 }
 
 // ---------- game lifecycle ----------
+let dealHintShown = false;
+
 function newGame() {
   scores = loadScores(playerNames());
   saveScores(scores);
@@ -116,12 +118,22 @@ function newRound(round) {
     players: null,
     justDealt: true,
   };
-  game.tray = sortTray(hands[0]);
+  if (settings.randomDeal) {
+    // Deal straight into the rows in random (dealt) order; the player swaps cards to fix the hand.
+    game.rows = { front: hands[0].slice(0, 3), middle: hands[0].slice(3, 8), back: hands[0].slice(8) };
+    normalize();
+  } else {
+    game.tray = sortTray(hands[0]);
+  }
   game.humanNatural = settings.naturals ? detectNatural(hands[0], DEFAULT_NATURALS, ruleOpts()) : null;
   $('#results').hidden = true;
   $('#results').innerHTML = '';
   renderAll();
   game.justDealt = false;
+  if (settings.randomDeal && !dealHintShown) {
+    dealHintShown = true;
+    toast('Cards dealt at random. Tap two cards in different rows to swap them.');
+  }
   scheduleAI();
 }
 
@@ -637,7 +649,7 @@ function openSettings() {
   f.mode.value = settings.mode;
   f.unitValue.value = settings.unitValue;
   f.cardBack.value = settings.cardBack;
-  for (const k of ['royalties', 'royaltyRequiresRowWin', 'naturals', 'allowEqualRows', 'wheelSecond', 'animations']) f[k].checked = !!settings[k];
+  for (const k of ['royalties', 'royaltyRequiresRowWin', 'naturals', 'allowEqualRows', 'wheelSecond', 'animations', 'randomDeal']) f[k].checked = !!settings[k];
   f.royaltyRequiresRowWin.disabled = !settings.royalties;
   $('#dlgSettings').showModal();
 }
@@ -652,7 +664,7 @@ function applySettings() {
     unitValue: Math.min(10, Math.max(1, Math.round(Number(f.unitValue.value) || 1))),
     cardBack: f.cardBack.value || 'back',
   };
-  for (const k of ['royalties', 'royaltyRequiresRowWin', 'naturals', 'allowEqualRows', 'wheelSecond', 'animations']) next[k] = f[k].checked;
+  for (const k of ['royalties', 'royaltyRequiresRowWin', 'naturals', 'allowEqualRows', 'wheelSecond', 'animations', 'randomDeal']) next[k] = f[k].checked;
   settings = next;
   saveSettings(settings);
   makeConfig({ mode: settings.mode, unitValue: settings.unitValue }); // sanity

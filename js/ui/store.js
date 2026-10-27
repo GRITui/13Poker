@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   allowEqualRows: false,
   wheelSecond: false,
   animations: true,
+  randomDeal: true,
 });
 
 function read(key) {
