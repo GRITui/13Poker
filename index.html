@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Chinese Poker (13-card poker) in your browser: set Front, Middle and Back hands and play against up to three AI opponents.">
+<meta name="theme-color" content="#0d3b26">
+<title>13 Poker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23145c3a'/%3E%3Cpath d='M32 10c-9 12-20 17-20 27a10 10 0 0 0 17 7l-3 10h12l-3-10a10 10 0 0 0 17-7c0-10-11-15-20-27z' fill='%23f4ecd8'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">&#9824;</span>
+    <span class="brand-name">13 Poker</span>
+    <span class="brand-sub">Chinese Poker</span>
+  </div>
+  <div class="top-actions">
+    <span class="round-pill" title="Round">Round <b id="roundNo">1</b></span>
+    <button class="icon-btn" id="btnScores" type="button" aria-label="Scoreboard" title="Scoreboard">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h4v10H4zm6 0V4h4v16h-4zm6 0v-7h4v7h-4z"/></svg>
+      <span class="btn-label">Scores</span>
+    </button>
+    <button class="icon-btn" id="btnHelp" type="button" aria-label="How to play" title="How to play">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2v2zm2.1-7.7-.9.9c-.7.7-1.2 1.3-1.2 2.8h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3c.4-.3.6-.8.6-1.4a2 2 0 0 0-4 0H8a4 4 0 0 1 8 0c0 .9-.4 1.7-.9 2.3z"/></svg>
+      <span class="btn-label">Rules</span>
+    </button>
+    <button class="icon-btn" id="btnSettings" type="button" aria-label="Settings" title="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5-2.1-1.6zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" transform="translate(-1 0)"/></svg>
+      <span class="btn-label">Settings</span>
+    </button>
+  </div>
+</header>
+
+<main class="felt" id="felt">
+  <section class="opponents" id="opponents" aria-label="Opponents"></section>
+
+  <section class="player" id="player" aria-label="Your hand">
+    <div class="player-head">
+      <div class="seat-id">
+        <span class="avatar avatar-you" aria-hidden="true">You</span>
+        <div>
+          <div class="seat-name">You</div>
+          <div class="seat-score" id="youScore">0 units</div>
+        </div>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </div>
+
+    <div class="natural-banner" id="naturalBanner" hidden></div>
+
+    <div class="rows" id="rows">
+      <div class="row" data-row="front">
+        <div class="row-label"><span class="row-title">Front <small>3</small></span><span class="row-hand" id="hand-front"></span></div>
+        <div class="slots" data-zone="front" tabindex="0" role="button" aria-label="Front row (3 cards)"></div>
+      </div>
+      <div class="row" data-row="middle">
+        <div class="row-label"><span class="row-title">Middle <small>5</small></span><span class="row-hand" id="hand-middle"></span></div>
+        <div class="slots" data-zone="middle" tabindex="0" role="button" aria-label="Middle row (5 cards)"></div>
+      </div>
+      <div class="row" data-row="back">
+        <div class="row-label"><span class="row-title">Back <small>5</small></span><span class="row-hand" id="hand-back"></span></div>
+        <div class="slots" data-zone="back" tabindex="0" role="button" aria-label="Back row (5 cards)"></div>
+      </div>
+    </div>
+
+    <div class="validation" id="validation" aria-live="polite"></div>
+
+    <div class="tray-wrap">
+      <div class="tray" id="tray" data-zone="tray" tabindex="0" role="button" aria-label="Unplaced cards"></div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="tool-group">
+        <button type="button" class="btn btn-ghost" id="btnSortRank" title="Sort unplaced cards by rank">Rank</button>
+        <button type="button" class="btn btn-ghost" id="btnSortSuit" title="Sort unplaced cards by suit">Suit</button>
+        <button type="button" class="btn btn-ghost" id="btnAuto" title="Suggest an arrangement">Auto</button>
+        <button type="button" class="btn btn-ghost" id="btnClear" title="Move all cards back">Clear</button>
+      </div>
+      <button type="button" class="btn btn-primary" id="btnSubmit" disabled>Set hand</button>
+    </div>
+  </section>
+
+  <section class="results" id="results" hidden aria-live="polite"></section>
+</main>
+
+<footer class="footer">
+  <span>Rules: WSGC Thirteen Card Poker sheet + common conventions (see <a href="docs/RULES.md">RULES.md</a>).</span>
+  <span>Card art: <a href="https://code.google.com/archive/p/vectorized-playing-cards/" rel="noopener">Vectorized Playing Cards 1.3</a> &copy; 2011 Chris Aguilar, <a href="assets/cards/LICENSE.md">LGPL-3.0</a>.</span>
+</footer>
+
+<!-- Settings -->
+<dialog id="dlgSettings" class="sheet" aria-labelledby="settingsTitle">
+  <form method="dialog" id="settingsForm">
+    <header class="sheet-head">
+      <h2 id="settingsTitle">Settings</h2>
+      <button class="icon-btn close" value="cancel" aria-label="Close">&times;</button>
+    </header>
+    <div class="sheet-body">
+      <fieldset>
+        <legend>Opponents</legend>
+        <div class="seg">
+          <label><input type="radio" name="opponents" value="1"><span>1</span></label>
+          <label><input type="radio" name="opponents" value="2"><span>2</span></label>
+          <label><input type="radio" name="opponents" value="3"><span>3</span></label>
+        </div>
+        <p class="hint">Changing the table size starts a new game and resets the scoreboard.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Scoring</legend>
+        <label class="opt"><input type="radio" name="mode" value="wsgc"><span><b>WSGC</b> &middot; 1 unit per row won, ties 0 (default)</span></label>
+        <label class="opt"><input type="radio" name="mode" value="1-6"><span><b>1-6</b> &middot; +3 bonus for winning all three rows</span></label>
+        <label class="opt"><input type="radio" name="mode" value="2-4"><span><b>2-4</b> &middot; +1 bonus to whoever wins more rows</span></label>
+        <label class="opt inline">Unit value $ <input type="number" name="unitValue" min="1" max="10" step="1" inputmode="numeric"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Card back</legend>
+        <div class="backs">
+          <label><input type="radio" name="cardBack" value="back"><img src="assets/cards/back.svg" alt="Blue back"></label>
+          <label><input type="radio" name="cardBack" value="back-alt"><img src="assets/cards/back-alt.svg" alt="Red back"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Optional rules</legend>
+        <label class="opt"><input type="checkbox" name="royalties"><span>Royalties (bonus units for big hands)</span></label>
+        <label class="opt sub"><input type="checkbox" name="royaltyRequiresRowWin"><span>Royalty paid only if that row wins</span></label>
+        <label class="opt"><input type="checkbox" name="naturals"><span>Naturals (Dragon, Six pairs, Three flushes / straights)</span></label>
+        <label class="opt"><input type="checkbox" name="allowEqualRows"><span>Allow equal rows (WSGC wording says strictly higher)</span></label>
+        <label class="opt"><input type="checkbox" name="wheelSecond"><span>A-2-3-4-5 is the second-highest straight</span></label>
+        <label class="opt"><input type="checkbox" name="animations"><span>Showdown animations</span></label>
+      </fieldset>
+    </div>
+    <footer class="sheet-foot">
+      <button class="btn btn-ghost" value="cancel">Cancel</button>
+      <button class="btn btn-primary" value="save" id="btnSaveSettings">Save</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Help -->
+<dialog id="dlgHelp" class="sheet" aria-labelledby="helpTitle">
+  <form method="dialog">
+    <header class="sheet-head">
+      <h2 id="helpTitle">How to play</h2>
+      <button class="icon-btn close" value="close" aria-label="Close">&times;</button>
+    </header>
+    <div class="sheet-body prose">
+      <p>Everyone gets <b>13 cards</b> from one 52-card deck (no jokers, no wild cards). Split yours into three poker hands:</p>
+      <ul class="rows-explain">
+        <li><b>Back</b>: 5 cards, your strongest hand</li>
+        <li><b>Middle</b>: 5 cards, must be <b>higher</b> than the Front</li>
+        <li><b>Front</b>: 3 cards, your weakest hand</li>
+      </ul>
+      <p>The Back must be <b>strictly higher</b> than the Middle, and the Middle strictly higher than the Front. Otherwise the hand is <b>fouled</b>. The game won't let you set a fouled hand.</p>
+      <h3>Hand ranks</h3>
+      <p>Standard poker, high to low: straight flush, four of a kind, full house, flush, straight, three of a kind, two pair, one pair, high card. Ace is high, and also low in A-2-3-4-5 (the lowest straight). No wrap-around (Q-K-A-2-3 is not a straight). <b>Suits never break ties.</b></p>
+      <p>In the 3-card <b>Front</b>, straights and flushes don't count: only three of a kind, a pair or high card. 7&#9829; 8&#9829; 9&#9829; is just 9-high.</p>
+      <h3>Scoring</h3>
+      <p>Your Front, Middle and Back are compared with the same row of <b>each</b> opponent. You win 1 unit for each row you win and lose 1 for each row you lose. Ties pay nothing.</p>
+      <table class="mini-table">
+        <thead><tr><th>Mode</th><th>Win 2-1</th><th>Win 3-0</th></tr></thead>
+        <tbody>
+          <tr><td>WSGC (default)</td><td>+1</td><td>+3</td></tr>
+          <tr><td>1-6</td><td>+1</td><td>+6</td></tr>
+          <tr><td>2-4</td><td>+2</td><td>+4</td></tr>
+        </tbody>
+      </table>
+      <p>A fouled hand loses all three rows to every valid hand (and pays the scoop bonus). Two fouled hands score 0 against each other.</p>
+      <h3>Optional rules</h3>
+      <p><b>Royalties</b> (off by default): Front trips 3; Middle full house 2, quads 8, straight flush 10; Back quads 4, straight flush 5.</p>
+      <p><b>Naturals</b> (off by default): Dragon (A to K, one of each rank) 13, Six pairs 3, Three flushes 3, Three straights 3. A declared natural is paid instead of comparing hands.</p>
+      <h3>Controls</h3>
+      <p><b>Tap</b> cards to select them, then tap a row to place them. With one card selected, tap a card in another row to swap. You can also <b>drag</b> cards. <b>Auto</b> suggests an arrangement.</p>
+      <p class="fine">The rules follow the Washington State Gambling Commission "Thirteen Card Poker (Chinese Poker)" sheet as reported by search snippets, plus common conventions where the sheet is silent. See <a href="docs/RULES.md">RULES.md</a>.</p>
+    </div>
+  </form>
+</dialog>
+
+<!-- Scoreboard -->
+<dialog id="dlgScores" class="sheet" aria-labelledby="scoresTitle">
+  <form method="dialog">
+    <header class="sheet-head">
+      <h2 id="scoresTitle">Scoreboard</h2>
+      <button class="icon-btn close" value="close" aria-label="Close">&times;</button>
+    </header>
+    <div class="sheet-body" id="scoresBody"></div>
+    <footer class="sheet-foot">
+      <button class="btn btn-ghost" value="reset" id="btnResetScores">Reset</button>
+      <button class="btn btn-primary" value="close">Close</button>
+    </footer>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="alert" hidden></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Deck Preview</title>
+<style>
+  body { margin: 0; padding: 16px; background: #1f5f3a; color: #f3f3f3; font-family: system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 12px; }
+  .row { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+  figure { margin: 0; text-align: center; }
+  img { width: 100%; aspect-ratio: 224.22508 / 312.80777; display: block; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.4); background: #fff; }
+  figcaption { font-size: 11px; margin-top: 2px; opacity: .8; }
+  .err { outline: 3px solid red; }
+  #status { font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>13Poker card deck preview (52 cards + backs)</h1>
+<div id="deck"></div>
+<div id="status"></div>
+<script>
+  const ranks = ['2','3','4','5','6','7','8','9','T','J','Q','K','A'];
+  const suits = ['c','d','h','s'];
+  const deck = document.getElementById('deck');
+  let pending = 0, failed = [];
+  function add(row, name) {
+    const fig = document.createElement('figure');
+    const img = document.createElement('img');
+    pending++;
+    img.onload = () => { if (--pending === 0) done(); };
+    img.onerror = () => { failed.push(name); img.classList.add('err'); if (--pending === 0) done(); };
+    img.src = name + '.svg'; img.alt = name;
+    const cap = document.createElement('figcaption'); cap.textContent = name;
+    fig.append(img, cap); row.append(fig);
+  }
+  for (const s of suits) {
+    const row = document.createElement('div'); row.className = 'row';
+    for (const r of ranks) add(row, r + s);
+    deck.append(row);
+  }
+  const backs = document.createElement('div'); backs.className = 'row';
+  add(backs, 'back'); add(backs, 'back-alt'); deck.append(backs);
+  function done() {
+    const st = document.getElementById('status');
+    st.textContent = failed.length ? 'FAILED: ' + failed.join(', ') : 'All 54 images loaded.';
+    document.body.dataset.done = failed.length ? 'fail' : 'ok';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "13poker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser Chinese Poker (13-card poker). Static site, no build step.",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "python3 -m http.server 8000"
+  }
+}
