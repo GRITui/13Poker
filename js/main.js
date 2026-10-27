@@ -430,9 +430,6 @@ function renderPlayer() {
   }
 
   // controls
-  for (const id of ['#btnSortRank', '#btnSortSuit', '#btnAuto', '#btnClear']) $(id).disabled = !arranging;
-  $('#btnSortRank').classList.toggle('active', game.sortMode === 'rank');
-  $('#btnSortSuit').classList.toggle('active', game.sortMode === 'suit');
   $('#controls').hidden = !arranging;
   updateSubmit(a);
   layoutTray();
@@ -731,24 +728,6 @@ function wire() {
       placeInto(cards, z, target);
     },
     canDrop,
-  });
-  $('#btnSortRank').addEventListener('click', () => { game.sortMode = 'rank'; normalize(); renderPlayer(); });
-  $('#btnSortSuit').addEventListener('click', () => { game.sortMode = 'suit'; normalize(); renderPlayer(); });
-  $('#btnAuto').addEventListener('click', () => {
-    const { set } = arrangeHand(game.hands[0], ruleOpts());
-    game.rows = { front: set.front, middle: set.middle, back: set.back };
-    game.tray = [];
-    game.selected.clear();
-    normalize();
-    renderPlayer();
-    toast('Suggested arrangement. Adjust it or set your hand.');
-  });
-  $('#btnClear').addEventListener('click', () => {
-    game.tray = [...game.tray, ...game.rows.front, ...game.rows.middle, ...game.rows.back];
-    game.rows = { front: [], middle: [], back: [] };
-    game.selected.clear();
-    normalize();
-    renderPlayer();
   });
   $('#btnSubmit').addEventListener('click', submit);
   $('#btnSettings').addEventListener('click', openSettings);

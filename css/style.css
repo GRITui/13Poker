@@ -280,7 +280,6 @@ img { -webkit-user-drag: none; user-select: none; }
 .tray .card { width: var(--cw); }
 
 .controls { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
-.tool-group { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
 .btn {
   min-height: 40px; padding: 8px 14px;
   border-radius: 11px; border: 1px solid var(--line);
@@ -495,7 +494,6 @@ dialog.sheet form { display: flex; flex-direction: column; max-height: inherit; 
   .controls { gap: 8px; }
   .btn { padding: 8px 11px; min-height: 40px; }
   .btn-primary { flex: 1 1 100%; }
-  .tool-group { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
 }
 @media (max-width: 380px) {
   .brand-name { font-size: 17px; }
