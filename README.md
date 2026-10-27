@@ -32,7 +32,7 @@ Add `?seed=123` to the URL for repeatable deals, which helps with debugging and 
 - Showdown: opponents' rows flip over Front → Middle → Back, with a win/loss/tie chip per row (from your point of
   view). Then come the pairwise totals, a head-to-head matrix, a zero-sum check and a running scoreboard (units and $).
   Tap the table to skip the animation.
-- Settings: number of opponents, scoring mode (`wsgc` default, `1-6`, `2-4`), unit value ($1–$10), card back (blue or
+- Settings: number of opponents, scoring mode (`1-6` "scoop ×2" default, `wsgc`, `2-4`), unit value ($1–$10), card back (blue or
   red), and optional rules: royalties (plus "royalty only if that row wins"), naturals, allow equal rows,
   A-2-3-4-5 as the second-highest straight, and animations on or off. Settings and scores are saved in `localStorage`.
 - A "How to play" panel. The layout works from desktop down to 375 px phones without horizontal scrolling.

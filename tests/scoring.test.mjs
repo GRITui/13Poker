@@ -126,7 +126,23 @@ test('unitValue > 10 is rejected [A9]; bad mode rejected', () => {
   assert.throws(() => makeConfig({ unitValue: 0 }));
   assert.throws(() => makeConfig({ mode: '3-3' }));
   assert.equal(makeConfig({ unitValue: 10 }).unitValue, 10);
-  assert.equal(makeConfig().mode, 'wsgc');
+  assert.equal(makeConfig().mode, '1-6');
+});
+
+test('default scoring: scoop doubles row points (3 x 2 = 6); a tied row means no scoop', () => {
+  const strong = preparePlayer(set('As Ah Kd', 'Ks Kh Qd Qc 2s', 'Js Jh Jd 3c 3d'));
+  const weak = preparePlayer(set('2h 3h 5d', '4s 4h 6d 7c 8s', '9s 9h Tc Td 6c'));
+  const tied = preparePlayer(set('Ad Kc 2c', '4c 4d 6h 7d 8h', '9d 9c Th Ts 6s'));
+  const fouled = preparePlayer(set('Qs Qh Qc', '5s 5h 7s 7h 8d', '2c 2s 4h 5c 6h'));
+  const scoop = scorePair(strong, weak);
+  assert.equal(scoop.scoop, 'A');
+  assert.equal(scoop.points, 6);
+  assert.equal(scorePair(weak, strong).points, -6);
+  assert.equal(scorePair(weak, fouled).points, 6);
+  const t = scorePair(tied, weak); // wins Front, ties Middle and Back
+  assert.equal(t.scoop, null);
+  assert.equal(t.points, 1);
+  assert.equal(scorePair(strong, weak, { mode: 'wsgc' }).points, 3);
 });
 
 test('zero-sum over random deals with 2, 3 and 4 players, all modes, with fouls and royalties', () => {

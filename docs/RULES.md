@@ -78,12 +78,14 @@ All three systems below build on the WSGC per-hand result. Pick one with `scorin
 
 | Mode | Rule | Split win (2-1) | Scoop (3-0) | Source |
 |---|---|---|---|---|
-| `wsgc` (default) | 1 unit per hand won, minus 1 per hand lost. No bonus. | +1 | +3 | [WSGC] |
-| `1-6` | Same as `wsgc`, plus a **3-unit scoop bonus** for winning all three hands against that opponent. | +1 | +6 | [CONVENTION] |
+| `wsgc` | 1 unit per hand won, minus 1 per hand lost. No bonus. | +1 | +3 | [WSGC] |
+| `1-6` (default, "scoop ×2") | Same as `wsgc`, but winning all three hands against that opponent **doubles** the row points: 3 × 2 = 6 (a 3-unit scoop bonus). | +1 | +6 | [HOUSE RULE] |
 | `2-4` | Same as `wsgc`, plus a **1-unit "overall" bonus** to whoever won more hands against that opponent. | +2 | +4 | [CONVENTION] |
 
 Notes on the conventions:
 
+- **Default is scoop ×2 (`1-6`).** House rule chosen for this game: winning Front, Middle and Back against one player
+  doubles those row points from 3 to 6. Royalties are not doubled. A fouled hand counts as scooped.
 - **A scoop means winning all 3 hands.** If one hand is tied, it is **not** a scoop.
 - **2-4 with a tied hand.** The overall bonus goes to the player who won more hands. If one hand ties and the other two are split 1-1,
   nobody gets the bonus. A 2-0 result with one tie earns the bonus: 2 + 1 = +3.
@@ -233,7 +235,7 @@ If any check fails, the hand is **fouled** and is scored under B2. The UI should
 
 ```
 config:
-  mode: "wsgc" | "1-6" | "2-4"          // default "wsgc"
+  mode: "wsgc" | "1-6" | "2-4"          // default "1-6" (scoop x2)
   unitValue: number                       // dollars; must be <= 10   [WSGC A9]
   allowEqualRows: false                   // [WSGC A6, interpreted]
   royalties: off | table                  // [OPTIONAL VARIANT]

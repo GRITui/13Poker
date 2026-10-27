@@ -18,7 +18,7 @@ export const DEFAULT_NATURALS = Object.freeze({
 });
 
 export const DEFAULT_CONFIG = Object.freeze({
-  mode: 'wsgc',
+  mode: '1-6', // scoop (win all three rows vs a player) pays double: 3 x 2 = 6
   unitValue: 1,
   allowEqualRows: false,
   royalties: null, // null = off, or a table like DEFAULT_ROYALTIES

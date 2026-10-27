@@ -1,11 +1,11 @@
 // Settings and scoreboard persistence (per-browser convenience; everything works without it).
 
-const SETTINGS_KEY = '13poker.settings.v1';
+const SETTINGS_KEY = '13poker.settings.v2'; // v2: default mode became 1-6 (scoop x2)
 const SCORES_KEY = '13poker.scores.v1';
 
 export const DEFAULT_SETTINGS = Object.freeze({
   opponents: 3,
-  mode: 'wsgc',
+  mode: '1-6',
   unitValue: 1,
   cardBack: 'back',
   royalties: false,
@@ -31,7 +31,7 @@ function write(key, value) {
 export function loadSettings() {
   const s = { ...DEFAULT_SETTINGS, ...(read(SETTINGS_KEY) || {}) };
   s.opponents = Math.min(3, Math.max(1, Number(s.opponents) || 3));
-  if (!['wsgc', '1-6', '2-4'].includes(s.mode)) s.mode = 'wsgc';
+  if (!['wsgc', '1-6', '2-4'].includes(s.mode)) s.mode = '1-6';
   s.unitValue = Math.min(10, Math.max(1, Math.round(Number(s.unitValue) || 1)));
   if (!['back', 'back-alt'].includes(s.cardBack)) s.cardBack = 'back';
   return s;

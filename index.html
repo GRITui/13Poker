@@ -110,8 +110,8 @@
 
       <fieldset>
         <legend>Scoring</legend>
-        <label class="opt"><input type="radio" name="mode" value="wsgc"><span><b>WSGC</b> &middot; 1 unit per row won, ties 0 (default)</span></label>
-        <label class="opt"><input type="radio" name="mode" value="1-6"><span><b>1-6</b> &middot; +3 bonus for winning all three rows</span></label>
+        <label class="opt"><input type="radio" name="mode" value="wsgc"><span><b>WSGC</b> &middot; 1 unit per row won, ties 0, no bonus</span></label>
+        <label class="opt"><input type="radio" name="mode" value="1-6"><span><b>Scoop &times;2</b> (1-6) &middot; win all three rows against a player and the 3 points double to 6 (default)</span></label>
         <label class="opt"><input type="radio" name="mode" value="2-4"><span><b>2-4</b> &middot; +1 bonus to whoever wins more rows</span></label>
         <label class="opt inline">Unit value $ <input type="number" name="unitValue" min="1" max="10" step="1" inputmode="numeric"></label>
       </fieldset>
@@ -164,12 +164,13 @@
       <table class="mini-table">
         <thead><tr><th>Mode</th><th>Win 2-1</th><th>Win 3-0</th></tr></thead>
         <tbody>
-          <tr><td>WSGC (default)</td><td>+1</td><td>+3</td></tr>
-          <tr><td>1-6</td><td>+1</td><td>+6</td></tr>
+          <tr><td>WSGC</td><td>+1</td><td>+3</td></tr>
+          <tr><td>Scoop &times;2 (default)</td><td>+1</td><td>+6</td></tr>
           <tr><td>2-4</td><td>+2</td><td>+4</td></tr>
         </tbody>
       </table>
-      <p>A fouled hand loses all three rows to every valid hand (and pays the scoop bonus). Two fouled hands score 0 against each other.</p>
+      <p><b>Scoop &times;2:</b> win all three rows (Front, Middle and Back) against one player and your row points double, 3 &times; 2 = 6. A tied row means no scoop.</p>
+      <p>A fouled hand loses all three rows to every valid hand, so it is scooped and pays 6. Two fouled hands score 0 against each other.</p>
       <h3>Optional rules</h3>
       <p><b>Royalties</b> (off by default): Front trips 3; Middle full house 2, quads 8, straight flush 10; Back quads 4, straight flush 5.</p>
       <p><b>Naturals</b> (off by default): Dragon (A to K, one of each rank) 13, Six pairs 3, Three flushes 3, Three straights 3. A declared natural is paid instead of comparing hands.</p>

@@ -602,7 +602,7 @@ function renderResults() {
   }
   matrix += '</tbody>';
   const sum = st.net.reduce((s, x) => s + x, 0);
-  const modeLabel = { wsgc: 'WSGC scoring', '1-6': '1-6 scoring', '2-4': '2-4 scoring' }[settings.mode];
+  const modeLabel = { wsgc: 'WSGC scoring', '1-6': 'Scoop ×2 scoring', '2-4': '2-4 scoring' }[settings.mode];
   const extras = [settings.royalties && 'royalties', settings.naturals && 'naturals'].filter(Boolean).join(', ');
   box.innerHTML = `
     <h2 class="${ptsClass(you)}">${headline}</h2>
@@ -648,7 +648,7 @@ function applySettings() {
   const next = {
     ...settings,
     opponents: Number(f.opponents.value) || 3,
-    mode: f.mode.value || 'wsgc',
+    mode: f.mode.value || '1-6',
     unitValue: Math.min(10, Math.max(1, Math.round(Number(f.unitValue.value) || 1))),
     cardBack: f.cardBack.value || 'back',
   };
