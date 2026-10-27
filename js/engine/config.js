@@ -25,6 +25,9 @@ export const DEFAULT_CONFIG = Object.freeze({
   royaltyRequiresRowWin: false,
   naturals: null, // null = off, or a table like DEFAULT_NATURALS
   wheelRank: 'lowest',
+  // House rule (1-6 mode only, 3+ players): a player who scoops EVERY opponent gets x4 row points
+  // (3 x 4 = 12) from each of them instead of the usual scoop x2 (6). Royalties are not multiplied.
+  scoopAll: true,
 });
 
 /** Merge with defaults and validate. Throws on invalid settings. */

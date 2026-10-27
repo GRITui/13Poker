@@ -86,6 +86,12 @@ Notes on the conventions:
 
 - **Default is scoop ×2 (`1-6`).** House rule chosen for this game: winning Front, Middle and Back against one player
   doubles those row points from 3 to 6. Royalties are not doubled. A fouled hand counts as scooped.
+- **Scoop everyone ×4 [HOUSE RULE].** In `1-6` mode with 3 or more players, a player who scoops **every** opponent
+  is paid **3 × 4 = 12** row points by each of them instead of 6 (a fouled opponent counts as scooped; a natural
+  does not). Royalties are added on top and are not multiplied. With 2 players a scoop is just ×2. Config:
+  `scoopAll: true` (default).
+  Example, 4 players: P1 scoops P2, P3 and P4, so P1 gets +12 from each = **+36**. If P1 scoops P2 and P3 but only
+  wins 2-1 against P4, P1 gets +6, +6, +1 = **+13**.
 - **A scoop means winning all 3 hands.** If one hand is tied, it is **not** a scoop.
 - **2-4 with a tied hand.** The overall bonus goes to the player who won more hands. If one hand ties and the other two are split 1-1,
   nobody gets the bonus. A 2-0 result with one tie earns the bonus: 2 + 1 = +3.

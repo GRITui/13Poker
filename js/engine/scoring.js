@@ -110,9 +110,36 @@ export function settle(players, cfg = {}) {
       pairs.push({ a: i, b: j, detail });
     }
   }
+  applyScoopAll(players.length, pairs, c);
+  for (let i = 0; i < net.length; i++) net[i] = 0;
+  for (const { a, b, detail } of pairs) { net[a] += detail.points; net[b] -= detail.points; }
   const zeroSum = net.reduce((s, x) => s + x, 0) === 0;
   if (!zeroSum) throw new Error('Zero-sum check failed');
   return { net, dollars: net.map((n) => n * c.unitValue), pairs, zeroSum };
+}
+
+/** Row points for a scoop-all: 3 rows x 4. */
+export const SCOOP_ALL_POINTS = 12;
+
+/**
+ * Scoop-all house rule: in 1-6 mode with 3+ players, a player who scoops every opponent (a fouled
+ * opponent counts as scooped) is paid x4 row points by each of them (12 instead of 6). Royalties are
+ * kept as they were. Marks the affected pair details with scoopAll = 'A' | 'B'.
+ */
+function applyScoopAll(n, pairs, c) {
+  if (!c.scoopAll || c.mode !== '1-6' || n < 3) return;
+  for (let i = 0; i < n; i++) {
+    const mine = pairs.filter((p) => p.a === i || p.b === i);
+    const scoopedAll = mine.every(({ a, detail }) => detail.kind !== 'natural' && detail.scoop === (a === i ? 'A' : 'B'));
+    if (!scoopedAll) continue;
+    for (const { a, detail } of mine) {
+      const sign = a === i ? 1 : -1;
+      const roy = detail.royalties.a - detail.royalties.b;
+      detail.points = sign * SCOOP_ALL_POINTS + roy;
+      detail.bonus = sign * (SCOOP_ALL_POINTS - 3);
+      detail.scoopAll = sign > 0 ? 'A' : 'B';
+    }
+  }
 }
 
 /** Look up a pair result from i's perspective. */
@@ -126,6 +153,7 @@ export function pairFor(settlement, i, j) {
   return {
     ...d, points: neg(d.points), rows: flip(d.rows), won: d.lost, lost: d.won, bonus: neg(d.bonus),
     scoop: d.scoop === 'A' ? 'B' : d.scoop === 'B' ? 'A' : null,
+    scoopAll: d.scoopAll === 'A' ? 'B' : d.scoopAll === 'B' ? 'A' : null,
     royalties: { a: d.royalties.b, b: d.royalties.a },
   };
 }

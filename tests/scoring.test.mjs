@@ -163,3 +163,45 @@ test('zero-sum over random deals with 2, 3 and 4 players, all modes, with fouls 
     }
   }
 });
+
+test('scoop-all (1-6, 3+ players): scooping every opponent pays x4 = 12 each; otherwise x2', () => {
+  const strong = preparePlayer(set('As Ah Kd', 'Ks Kh Qd Qc 2s', 'Js Jh Jd 3c 3d'));
+  const weak = preparePlayer(set('2h 3h 5d', '4s 4h 6d 7c 8s', '9s 9h Tc Td 6c'));
+  const weak2 = preparePlayer(set('2d 3d 5c', '4c 4d 6h 7d 8h', '9d 9c Th Ts 6s'));
+  const fouled = preparePlayer(set('Qs Qh Qc', '5s 5h 7s 7h 8d', '2c 2s 4h 5c 6h'));
+
+  // strong scoops both -> +12 from each, total +24. weak vs weak2 tie on every row except the front.
+  const s = settle([strong, weak, weak2]);
+  assert.equal(pairFor(s, 0, 1).points, 12);
+  assert.equal(pairFor(s, 0, 2).points, 12);
+  assert.equal(pairFor(s, 0, 1).scoopAll, 'A');
+  assert.equal(pairFor(s, 1, 0).scoopAll, 'B');
+  assert.equal(s.net[0], 24);
+  assert.ok(s.zeroSum);
+
+  // A fouled opponent counts as scooped.
+  const f = settle([strong, weak, fouled]);
+  assert.equal(pairFor(f, 0, 2).points, 12);
+  assert.equal(pairFor(f, 0, 1).points, 12);
+
+  // Scooping only some opponents stays x2: weak2 scoops nobody, strong scoops weak but loses to a stronger hand.
+  const top = preparePlayer(set('Ks Kc Qh', 'As Ad Ac 2h 3c', '8c 9c Tc Jc Qc'));
+  const m = settle([strong, weak, top]);
+  assert.equal(pairFor(m, 0, 1).points, 6);
+  assert.equal(pairFor(m, 0, 1).scoopAll ?? null, null);
+
+  // Only 2 players: a normal scoop x2.
+  assert.equal(settle([strong, weak]).net[0], 6);
+  // Other modes and the flag off are unaffected.
+  assert.equal(settle([strong, weak, weak2], { mode: 'wsgc' }).net[0], 6);
+  assert.equal(settle([strong, weak, weak2], { scoopAll: false }).net[0], 12);
+});
+
+test('scoop-all keeps royalties on top of the x4 row points', () => {
+  const quadsBack = preparePlayer(set('As Ah Kd', 'Ks Kh Qd Qc 2s', 'Js Jh Jd Jc 3d'));
+  const weak = preparePlayer(set('2h 3h 5d', '4s 4h 6d 7c 8s', '9s 9h Tc Td 6c'));
+  const weak2 = preparePlayer(set('2d 3d 5c', '4c 4d 6h 7d 8h', '9d 9c Th Ts 6s'));
+  const s = settle([quadsBack, weak, weak2], { royalties: true });
+  assert.equal(pairFor(s, 0, 1).points, 12 + 4); // Back quads royalty 4
+  assert.ok(s.zeroSum);
+});
