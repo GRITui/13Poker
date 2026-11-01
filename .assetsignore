@@ -1,0 +1,19 @@
+# Only index.html, css/, js/ and assets/ are public. Everything else in the repo stays private.
+.git
+.github
+.gitignore
+.assetsignore
+.wrangler
+.dev.vars*
+.env*
+node_modules
+worker
+tests
+docs/*
+!docs/RULES.md
+README.md
+package.json
+package-lock.json
+wrangler.jsonc
+wrangler.toml
+*.log

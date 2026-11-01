@@ -2,9 +2,14 @@
   "name": "13poker",
   "version": "1.0.0",
   "private": true,
-  "description": "Browser Chinese Poker (13-card poker). Static site, no build step.",
+  "description": "Browser Chinese Poker (13-card poker). Static site, no build step; optional Cloudflare Worker for online tables.",
   "scripts": {
     "test": "node --test tests/",
-    "serve": "python3 -m http.server 8000"
+    "serve": "python3 -m http.server 8000",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.150.0"
   }
 }

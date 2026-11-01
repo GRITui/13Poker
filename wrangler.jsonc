@@ -1,0 +1,23 @@
+{
+  // 13 Poker: static site + online tables (one Durable Object per table).
+  // Deploy: npx wrangler login (once), then npm run deploy.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "13poker",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-09-15",
+  "assets": {
+    // The repo root is the site; .assetsignore keeps tests/, worker/, docs/, node_modules and config out of it.
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/ws"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "TABLES", "class_name": "Table" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Table"] }],
+  "vars": {
+    // Seconds to set a hand before the server sets it with the AI. Override locally: wrangler dev --var TURN_SECONDS:10
+    "TURN_SECONDS": "90"
+  },
+  "observability": { "enabled": true }
+}

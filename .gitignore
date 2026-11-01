@@ -6,3 +6,6 @@ Thumbs.db
 .idea/
 test-results/
 playwright-report/
+.wrangler/
+.dev.vars
+.dev.vars.*

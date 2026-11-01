@@ -1,0 +1,6 @@
+# Workers Static Assets headers (Cloudflare only; ignored by plain static servers).
+# X-13Poker-Online tells the page that this host runs the online server (js/online/online.js).
+/*
+  X-13Poker-Online: ws
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

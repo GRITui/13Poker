@@ -596,3 +596,41 @@ dialog.sheet form { display: flex; flex-direction: column; max-height: inherit; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
+
+/* ---------- Online server (WebSocket) extras ---------- */
+.turn-clock {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  margin: 0 0 8px; padding: 6px 10px; border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(242, 193, 78, 0.35);
+  font-size: 13px; color: var(--ink-dim);
+}
+.tc-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums;
+}
+.tc-note { min-width: 0; }
+.turn-clock.urgent { border-color: var(--loss); }
+.turn-clock.urgent .tc-time { color: var(--loss); }
+.ob-timer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 800; color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+.ob-dot.off { background: var(--gold-2); box-shadow: 0 0 6px var(--gold-2); animation: ob-pulse 1s ease-in-out infinite alternate; }
+@keyframes ob-pulse { from { opacity: 1; } to { opacity: 0.35; } }
+.tag.tag-dim { background: rgba(255, 255, 255, 0.14); color: var(--ink-dim); }
+.lobby-seat.away .lobby-name { color: var(--ink-dim); }
+.btn-kick { flex: none; min-height: 28px; padding: 2px 8px; font-size: 12px; }
+.lobby-status { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--gold); }
+.nick-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nick-line b { color: var(--ink); overflow-wrap: anywhere; }
+.nick-field { display: flex; flex-direction: column; gap: 6px; }
+.nick-input {
+  min-width: 0; width: 100%; min-height: 40px; padding: 8px 12px;
+  border-radius: 11px; border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.3); color: var(--ink); font: inherit; font-size: 16px;
+}
+.nick-input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+@media (max-width: 640px) {
+  .turn-clock { margin-bottom: 4px; padding: 5px 8px; font-size: 12px; }
+  .tc-time { font-size: 16px; }
+}

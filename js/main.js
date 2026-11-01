@@ -33,8 +33,8 @@ let settings = loadSettings();
 let scores = null;
 let game = null;
 let showdownToken = 0;
-// Online play: null in single player. While seated at a table with a game running, the online controller sets
-// it to { rules, isHost, book(), submit(set, declared), next() } (see js/online/online.js).
+// Online play: null in single player. While seated at a table with a game running, the online transport sets
+// it to { rules, isHost, book(), submit(set, declared), next() } (see js/online/db.js and js/online/ws.js).
 let online = null;
 
 function playerNames() {
@@ -312,7 +312,7 @@ function renderOpponents() {
     $('.seat-name', top).textContent = a.name;
     const away = a.kind === 'human' && a.here === false;
     const state = el('div', `seat-state ${away ? 'away' : a.ready ? 'ready' : 'thinking'}`);
-    const label = away ? 'Left the table' : a.ready ? (online ? 'Hand set' : 'Ready') : online && a.kind === 'human' ? 'Arranging…' : 'Setting hand…';
+    const label = away ? a.awayLabel || 'Left the table' : a.ready ? (online ? 'Hand set' : 'Ready') : online && a.kind === 'human' ? 'Arranging…' : 'Setting hand…';
     if (!showdown) state.innerHTML = `<span class="dot"></span>${label}`;
     top.appendChild(state);
     seat.appendChild(top);
@@ -843,7 +843,10 @@ function wire() {
 
 // ---------- online hooks (called by js/online/online.js) ----------
 const onlineApi = {
-  /** Start an online round. view: { key, round, hands (this player's first), opps: [{name, color, kind, here, ready}] }. */
+  /**
+   * Start an online round. view: { key, round, hands (this player's first; the server transport only sends yours),
+   * opps: [{name, color, kind, here, ready, awayLabel?}] }.
+   */
   enterRound(view, ctx) {
     online = ctx;
     showdownToken++;
@@ -886,7 +889,7 @@ const onlineApi = {
       const n = opps[i];
       if (!n) return;
       if (o.name !== n.name) renamed = true;
-      Object.assign(o, { name: n.name, color: n.color, kind: n.kind, here: n.here, ready: n.ready });
+      Object.assign(o, { name: n.name, color: n.color, kind: n.kind, here: n.here, ready: n.ready, awayLabel: n.awayLabel });
     });
     if (['arrange', 'sending', 'waiting'].includes(game.phase)) {
       renderOpponents();
